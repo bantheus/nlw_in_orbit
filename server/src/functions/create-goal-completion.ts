@@ -35,7 +35,7 @@ export async function createGoalCompletion({
     .select({
       desiredWeeklyFrequency: goals.desiredWeeklyFrequency,
       completionCount:
-        sql`COALESCE(${goalCompletionCounts.completionCount}, 0)`.mapWith(
+        sql/*sql*/ `COALESCE(${goalCompletionCounts.completionCount}, 0)`.mapWith(
           Number
         ),
     })
