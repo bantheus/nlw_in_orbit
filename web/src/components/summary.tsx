@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import ptBR from "dayjs/locale/pt-br";
 import { CheckCircle2Icon, PlusIcon } from "lucide-react";
+import { deleteGoalCompletion } from "../http/delete-goal-completion";
 import { getSummary } from "../http/get-summary";
 import { InOrbitIcon } from "./in-orbit-icon";
 import { PendingGoals } from "./pending-goals";
@@ -13,10 +14,20 @@ import { Separator } from "./ui/separator";
 dayjs.locale(ptBR);
 
 export function Summary() {
+  const queryClient = useQueryClient();
+
   const { data } = useQuery({
     queryKey: ["summary"],
     queryFn: getSummary,
     staleTime: 1000 * 60,
+  });
+
+  const undoGoalCompletion = useMutation({
+    mutationFn: deleteGoalCompletion,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["summary"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-goals"] });
+    },
   });
 
   if (!data) return null;
@@ -67,7 +78,7 @@ export function Summary() {
       <div className="flex flex-col gap-6">
         <h2 className="text-xl font-medium">Sua semana</h2>
 
-        {Object.entries(data.goalsPerDay).map(([date, goals]) => {
+        {Object.entries(data.goalsPerDay || {}).map(([date, goals]) => {
           const weekDay = dayjs(date).format("dddd");
           const formattedDate = dayjs(date).format("D [de] MMMM");
 
@@ -89,6 +100,12 @@ export function Summary() {
                         Você completou{" "}
                         <span className="text-zinc-100">"{goal.title}"</span> às{" "}
                         <span className="text-zinc-100">{time}h</span>{" "}
+                        <button
+                          onClick={() => undoGoalCompletion.mutate(goal.id)}
+                          className="ml-2 text-sm capitalize text-zinc-500 underline hover:text-zinc-400"
+                        >
+                          desfazer
+                        </button>
                       </span>
                     </li>
                   );
